@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>浸水センサー選定アドバイザー（試作）</title>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--ink:#1c2a2e;--sub:#5b6b70;--line:#d9e0de;--acc:#0b6e78;--acc2:#e3f1f2;--warn:#a85a00;--warnbg:#fff4e2;--ng:#9a2b2b;--ngbg:#fbeaea;--ok:#1e6b3a;--okbg:#e6f4ea}
+@media (prefers-color-scheme:dark){:root{--bg:#12191b;--card:#1b2528;--ink:#e6eeee;--sub:#9db0b3;--line:#2e3d41;--acc:#5fc3cc;--acc2:#1f3438;--warn:#f0b35a;--warnbg:#3a2c14;--ng:#f09a9a;--ngbg:#3a1c1c;--ok:#8fd6a6;--okbg:#17321f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic","游ゴシック",YuGothic,"Hiragino Sans",sans-serif;line-height:1.65;font-size:15px}
+header{padding:20px 20px 8px;max-width:1180px;margin:auto}
+h1{font-size:22px;margin:0 0 4px}
+header p{margin:0;color:var(--sub);font-size:13px}
+nav{max-width:1180px;margin:10px auto 0;padding:0 20px;display:flex;gap:6px;flex-wrap:wrap}
+nav button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer;font:inherit;font-size:14px}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{max-width:1180px;margin:auto;padding:14px 20px 60px;display:grid;grid-template-columns:340px minmax(0,1fr);gap:18px}
+@media (max-width:860px){main{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.q{margin-bottom:14px}
+.q h3{font-size:13.5px;margin:0 0 6px}
+.q small{color:var(--sub);font-weight:normal}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts label{border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13.5px;cursor:pointer;user-select:none}
+.opts input{position:absolute;opacity:0;pointer-events:none}
+.opts label:has(input:checked){background:var(--acc2);border-color:var(--acc);color:var(--acc);font-weight:600}
+.opts label:has(input:focus-visible){outline:2px solid var(--acc)}
+input[type=number]{width:90px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+h2{font-size:17px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.card.top{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.card.out{opacity:.72}
+.hd{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.hd b{font-size:16px}
+.badge{font-size:12px;border-radius:999px;padding:2px 10px;font-weight:600;white-space:nowrap}
+.b-ok{background:var(--okbg);color:var(--ok)}.b-warn{background:var(--warnbg);color:var(--warn)}.b-ng{background:var(--ngbg);color:var(--ng)}
+.spec{color:var(--sub);font-size:13px;margin:2px 0 8px}
+.money{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.money div{background:var(--bg);border-radius:8px;padding:6px 10px}
+.money span{display:block;font-size:11.5px;color:var(--sub)}
+.money strong{font-size:15px;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.money{grid-template-columns:1fr}}
+ul{margin:4px 0 0;padding-left:1.2em}
+li{margin:2px 0}
+.lab{font-size:12.5px;font-weight:700;margin-top:8px}
+.lab.g{color:var(--ok)}.lab.w{color:var(--warn)}.lab.n{color:var(--ng)}
+.note{font-size:12.5px;color:var(--sub)}
+.guide{background:var(--acc2);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.guide h2{color:var(--acc)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:900px}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:var(--card);font-size:12px;color:var(--sub)}
+td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hide{display:none}
+.sortrow{display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--sub);flex-wrap:wrap}
+select{font:inherit;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+<h1>浸水センサー選定アドバイザー <span style="font-size:13px;color:var(--sub)">試作 v0.2</span></h1>
+<p>条件を選ぶと、合う機種・費用・デメリット・設置方法・活用方法が出ます。価格と仕様は国土交通省「浸水センサの利用に関するガイドライン 参考資料（案）」（2026年3月、税抜・令和8年度予定価格）から転記。「要確認」は原資料の表の読み取りが確定できていない項目です。</p>
+</header>
+<nav>
+<button id="t1" class="on">選定</button>
+<button id="t2">全機種の比較表</button>
+<button id="t3">前提と注意</button>
+</nav>
+
+<main id="v1">
+<section class="panel" id="form"></section>
+<section id="out"></section>
+</main>
+
+<main id="v2" class="hide" style="grid-template-columns:1fr">
+<section class="panel"><h2>全機種の比較表（1地点1台あたり）</h2><div class="tw" id="tbl"></div>
+<p class="note">金額は税抜。設置工事費・点検費・電池交換費は含みません。</p></section>
+</main>
+
+<main id="v3" class="hide" style="grid-template-columns:1fr">
+<section class="panel">
+<h2>前提と注意</h2>
+<ul>
+<li>機種データの出典は、ワンコイン浸水センサ実証実験の「浸水センサの利用に関するガイドライン（案）」と「同 参考資料（案）」（2026年3月）。実証実験に参加している10機種のみが対象で、市場の全製品ではありません。</li>
+<li>NTTインフラネット・京セラ・リプロ・太陽誘電タイプ2の4機種には、TDE作成の「南陽市センサ比較表」（2025年5月）の数値を併記しています。この表もPDFからの読み取りで、機器費の内訳（通信機・センサ別）は確定できていません。</li>
+<li>Sigfoxは場所によって通じない可能性があります（TDE比較表の総評、2025年5月時点）。</li>
+<li>原資料はPDFの表で、一部の列の対応が読み取りきれていません。該当箇所は「要確認」と表示しています。提案に使う前にメーカー見積で確定させる前提です。</li>
+<li>複数台の費用は、原資料の1台価格・10台価格から組み立てた概算です（ゲートウェイ型は逆算）。5年総額＝初期費用＋年額×5。設置工事・点検・電池交換は含みません。</li>
+<li>検知方式ごとのデメリット、通信・維持管理の留意点はガイドラインの記述に基づきます。「設置方法」「活用方法」の文面は、ガイドラインの記述に実務上の考え方を足した案で、現地条件での確認が必要です。</li>
+<li>連続した水位（ハイドログラフ）が必要な場合、浸水センサではなく水位計（圧力式・超音波式・電波式）の領域です。この試作には水位計の機種・価格データは入っていません。</li>
+<li>適合度の点数は、この試作で仮に置いた重みです。順位の理由は各カードの「合う点／デメリット」で確認してください。</li>
+</ul>
+</section>
+</main>
+
+<script>
+const Q=[
+ {id:'loc',t:'どこで使うか',type:'radio',o:[['channel','排水路・側溝'],['road','道路・アンダーパス'],['gate','樋門・ポンプ場まわり'],['wall','宅地・施設の壁面'],['levee','堤防・河川沿い']]},
+ {id:'info',t:'何を取りたいか',type:'radio',o:[['p1','浸水の有無（1点）'],['p2','水位を2点'],['p3','3段階以上'],['cont','連続した水位']]},
+ {id:'n',t:'設置する地点数',type:'num'},
+ {id:'power',t:'商用電源',type:'radio',o:[['no','取れない'],['yes','取れる']]},
+ {id:'mail',t:'メール通報',type:'radio',o:[['must','必須'],['opt','なくてもよい']]},
+ {id:'comm',t:'通信環境',type:'radio',o:[['good','市街地・携帯圏内'],['weak','山間・電波が不安'],['encl','地下・金属に囲まれる']]},
+ {id:'env',t:'現地の条件',sub:'当てはまるもの全部',type:'check',o:[['mud','泥・ゴミが溜まる'],['grass','草木が茂る'],['snow','積雪・凍結'],['car','車が停まる'],['flow','流れが速い・波立つ']]}
+];
+const S={loc:'channel',info:'p2',n:3,power:'no',mail:'must',comm:'good',env:[]};
+
+// ---- 機種データ（出典：ガイドライン参考資料 2026年3月）----
+const P=[
+ {id:'taiyo1',name:'光陽無線／太陽誘電 タイプ1',method:'radio',judge:'サーバ',comm:'LTE',lpwa:false,power:'need',batt:'8年（センサ）',swap:'不可',stages:1,addSensor:7000,mail:'unknown',
+  feat:'小型で縁石などにも設置可。センサ7,000円＋中継装置60,000円',
+  cost:(n,u)=>({i:[60000*n+7000*u,60000*n+7000*u],a:[30000*n,30000*n]}),flag:'年額30,000円の内訳は要確認'},
+ {id:'taiyo2',name:'光陽無線／太陽誘電 タイプ2',method:'contact',judge:'センサ',comm:'LTE-M',lpwa:true,power:'no',batt:'7年（センサ）※TDE表では5年（設計7年）',swap:'不可',stages:4,fixed:true,mail:'yes',tde:'機器費 約50,000円（仕様による）、年額 1点9,600円／2点12,000円／3点14,400円／4点16,800円（通信2,400＋サーバ7,200が基本）。電池交換「可」、設置「簡単」。ガイドライン価格（111,000円・年42,000円）と差が大きく、見積で要確認',
+  feat:'電源不要の一体型。1台で4段階検知',
+  cost:(n,u,k)=>({i:[50000*n,111000*n],a:[[9600,12000,14400,16800][k-1]*n,42000*n]}),flag:'下限はTDE比較表（2025/5）、上限はガイドライン参考資料（令和8年度予定価格）。検知高さは3・10・20・30cm'},
+ {id:'taiheiyo',name:'太平洋工業 FLMS',method:'pressure',judge:'サーバ',comm:'LTE',lpwa:false,power:'need',batt:'10年（センサ）',swap:'不可',stages:20,mail:'yes',
+  feat:'1台で20段階（2mを10cm刻みの場合）、約90秒間隔で計測・送信',
+  cost:(n,u)=>({i:[51000*n,51000*n],a:[4800*n,4800*n]}),flag:'商用電源は中継装置・通信装置側に必要'},
+ {id:'repro',name:'リプロ',method:'contact',judge:'センサ',comm:'Sigfox',lpwa:true,power:'no',batt:'5年（センサ）',swap:'可（5,000円/個）',stages:2,mail:'yes',tde:'電極2点まで可、任意の水位に設置可。機器費50,000円（仕様による）、年額は1点でも2点でも12,000円（通信8,400＋サーバ3,600）。設置「簡単」',
+  feat:'中継器不要の一体型。2点検知タイプ、電極延長タイプあり。結束バンドでも設置可',
+  cost:(n,u)=>({i:[50000*n,60000*n],a:[12000*n,12000*n]}),flag:'別途：壁面固定金具5,000円、電極保護管1点1,000円／2点2,000円、専用杭590〜5,000円。2点タイプが価格幅のどちらかは要確認'},
+ {id:'ntt',name:'NTTインフラネット',method:'float',judge:'センサ',comm:'LTE',lpwa:false,power:'no',batt:'5年（通信装置）※設計上は10年',swap:'可',stages:3,mail:'yes',tde:'フロート3点まで可、任意の水位に設置可。機器費 1点55,000円／2点80,000円、年額 1点7,320円（通信3,480＋サーバ3,840）／2点11,160円／3点15,000円。設置しやすさ「普通」。総評：高さも測りたいならNTT',
+  feat:'フロート式。一定時間の浮上で判定し誤検知を抑える。フロートを追加して3点まで',
+  cost:(n,u,k)=>({i:[[50000,80000,105000][k-1]*n,[55000,80000,105000][k-1]*n],a:[[7320,11160,15000][k-1]*n,[7320,11160,15000][k-1]*n]}),flag:'2点・3点の費用はTDE比較表（2025/5）。3点の機器費105,000円は1点→2点の差額からの推定で要確認。メール通知は別途費用（ガイドラインでは1箇所1アドレス100円）'},
+ {id:'kyocera',name:'京セラコミュニケーションシステム／マスプロ電工／ゼロスペック（SUIJIN）',method:'contact',judge:'センサ',comm:'Sigfox',lpwa:true,power:'no',batt:'5年（センサ）',swap:'不可',stages:1,min:10,mail:'yes',tde:'電極1点。機器費7,000円（10個単位のため実質70,000円）、年額5,800円（通信1,000＋サーバ4,800）。電池交換不可、設置「簡単」。総評：1点のみでよければ京セラ',
+  feat:'低コストの一体型。アプリで遠隔監視、ユーザー自身で設置可',
+  cost:(n,u)=>{const k=Math.ceil(Math.max(u,10)/10);return{i:[7000*Math.max(u,10)+100000*k,7000*Math.max(u,10)+200000*k],a:[5800*Math.max(u,10),6000*Math.max(u,10)]}},flag:'10台から販売。諸経費（10台あたり100,000〜200,000円、原資料内で記載に食い違い）を初期費用に含めて表示。メール通知はアプリ併用で別途基本料金'},
+ {id:'nita',name:'ニタコンサルタント／SCSK',method:'contact',judge:'センサ',comm:'特定小電力無線',lpwa:true,power:'gw',batt:'5年（センサ）',swap:'可',stages:1,addSensor:26000,mail:'unknown',relay:true,grating:true,
+  feat:'1通信装置に複数センサ。中継機でLTE圏外にも対応、側溝グレーチング設置可、濁水・海水でも検知',
+  cost:(n,u)=>{const c=Math.ceil(u/25);return{i:[95000*c+26000*u,110000*c+50000*u],a:[72000*c,78000*c]}},flag:'通信装置1台あたりの接続台数（最大25台）と年額の対応は要確認。中継器は別途130,000円'},
+ {id:'oyo',name:'応用地質',method:'float',judge:'サーバ',comm:'LTE-M',lpwa:true,power:'no',batt:'5年（通信装置）',swap:'不可',stages:3,mail:'yes',
+  feat:'1通信機に検知水位を任意設定できるセンサを最大3台（標準2台）。誤検知防止機能、検知時にメール通知',
+  cost:(n,u)=>({i:[190000*n,190000*n],a:[20000*n,20000*n]}),flag:'本体180,000円＋クラウド初期登録10,000円。センサ3台目の追加費用、複数台割引は要確認'},
+ {id:'nstg',name:'エヌエスティ・グローバリスト',method:'contact',judge:'センサ',comm:'LoRa',lpwa:true,power:'gw',batt:'3年',swap:'可',stages:1,mail:'unknown',many:true,
+  feat:'ゲートウェイ1台で子局100台まで一元管理。台数が増えるほど年額が割安',
+  cost:(n,u)=>{const g=Math.ceil(u/100);return{i:[75990*g+49700*u,75990*g+49700*u],a:[3600*g+2400*u,3600*g+2400*u]}},flag:'ゲートウェイと子局の単価は1台価格（125,690円〜）と10台価格（572,990円）からの逆算'},
+ {id:'asahi',name:'旭光電機',method:'contact',judge:'センサ',comm:'LTE-M',lpwa:true,power:'no',batt:'3年（センサ）',swap:'可（自治体で実施）',stages:1,mail:'yes',
+  feat:'一体型。ねじ止め・バンド取付、電気資格不要',
+  cost:(n,u)=>({i:[38000*u,38000*u],a:[60000+6000*u,60000+6000*u]}),flag:'年額はサーバ60,000円（固定）＋通信6,000円/台'}
+];
+const MJ={radio:'電波式',contact:'接触式（電極）',pressure:'圧力式',float:'フロート式'};
+const MD={
+ radio:['近くに車が停まると電波が減衰して誤検知することがある','設置箇所の下が空洞だと正しく検知できないことがある'],
+ contact:['草木の湿りや泥はね・水はねを浸水と誤検知しやすい','蜘蛛の巣・ナメクジでも誤検知の例がある'],
+ pressure:['計測部が泥などで完全に覆われると誤検知のおそれ'],
+ float:['ゴミや泥で浮きが動かなくなることがある','激しい水流・波のある場所は推奨されない']
+};
+const yen=v=>'¥'+Math.round(v).toLocaleString('ja-JP');
+const rng=a=>a[0]===a[1]?yen(a[0]):yen(a[0])+'〜'+yen(a[1]);
+
+function evalP(p){
+ let sc=100;const good=[],bad=[],ng=[];let mult=1;const n=Math.max(1,S.n|0);
+ const need={p1:1,p2:2,p3:3,cont:99}[S.info];
+ // 取りたい情報
+ if(S.info==='cont'){
+  if(p.stages>=20){good.push('10cm刻み・約90秒間隔で、浸水センサの中では最も連続水位に近い');sc+=10}
+  else{ng.push('ON/OFF（段階）検知で、連続した水位は取れない')}
+ }else if(need>1){
+  if(p.stages>=need){good.push('1台で'+need+'点以上を検知できる（'+(p.stages>=20?'20段階':p.stages+'点まで')+'）');sc+=15;
+   if(p.fixed){bad.push('検知高さが3・10・20・30cmの固定間隔で、任意の水位に合わせにくい');sc-=15}}
+  else if(p.addSensor){mult=need;good.push('センサを追加して'+need+'点にできる（追加1台 約'+yen(p.addSensor)+'）');sc+=5}
+  else{mult=Math.ceil(need/p.stages);bad.push(need+'点取るには1地点に'+mult+'台必要で、機器費と通信費が'+mult+'倍になる');sc-=18}
+ }
+ const u=n*mult;const k=(need>1&&need<99&&p.stages>=need)?need:1;
+ // 電源
+ if(S.power==='no'){
+  if(p.power==='need')ng.push('中継装置・通信装置に商用電源が必要');
+  if(p.power==='gw'){bad.push('通信装置（ゲートウェイ）側には商用電源が必要。置き場所を別に確保する');sc-=12}
+  if(p.power==='no'){good.push('商用電源不要（電池駆動）')}
+ }
+ // メール
+ if(S.mail==='must'){
+  if(p.mail==='yes')good.push('メール通知あり');
+  else{bad.push('メール通知の有無が原資料で確認できない（要確認）');sc-=15}
+ }
+ // 通信
+ if(S.comm==='weak'){
+  if(p.relay){good.push('中継機でLTE圏外にも対応できる');sc+=10}
+  else if(p.comm==='Sigfox'){bad.push('Sigfoxはサービスエリア外の可能性。設置前に検証機で電波確認が必要');sc-=20}
+  else if(p.comm==='LoRa'){good.push('自前のゲートウェイで通信網を組める');sc+=5}
+  else{bad.push('携帯圏内かを現地で確認する必要がある');sc-=8}
+ }
+ if(S.comm==='encl'){
+  if(p.grating){good.push('計測部をグレーチング内、通信装置を外に分けて置ける');sc+=10}
+  else if(p.lpwa){bad.push('LPWAは地下・金属に囲まれた場所で通信しにくい。電極延長や通信装置の分離を検討');sc-=15}
+  else{bad.push('アンテナ位置を地上側に出す必要がある');sc-=6}
+ }
+ // 場所
+ if(S.loc==='channel'||S.loc==='gate'){
+  if(p.method==='radio'){bad.push('水路内・グレーチング上は下が空洞になり、電波式は検知できないことがある');sc-=30}
+  if(p.method==='float'){bad.push('水路の流れやゴミの影響を受ける。保護管と流れの緩い位置が前提');sc-=8}
+  if(p.id==='repro'){good.push('電極延長・保護管があり、水路側壁に計測部だけ下ろせる');sc+=6}
+ }
+ if(S.loc==='road'&&p.method==='radio'&&!S.env.includes('car')){good.push('小型で縁石・路肩に置ける');sc+=4}
+ // 環境
+ if(S.env.includes('mud')){
+  if(p.method==='float'){bad.push('泥・ゴミで浮きが固着しやすい。点検頻度を上げる必要');sc-=20}
+  if(p.method==='contact'){bad.push('泥の付着で誤検知しやすい');sc-=10}
+  if(p.method==='pressure'){bad.push('計測部が泥で埋まると誤検知のおそれ');sc-=6}
+  if(p.method==='radio'){good.push('汚れの影響を受けにくい');sc+=5}
+ }
+ if(S.env.includes('grass')&&p.method==='contact'){bad.push('草木の湿りで誤検知しやすい。草刈り・防草シートが前提');sc-=15}
+ if(S.env.includes('car')&&p.method==='radio'){bad.push('車両が停まると誤検知することがある');sc-=25}
+ if(S.env.includes('flow')&&p.method==='float'){bad.push('激しい水流・波の場所はフロート式は推奨されない');sc-=25}
+ if(S.env.includes('snow')){
+  bad.push('凍結で検知不可・除雪での破損・低温での電池電圧低下に注意。冬季撤去も選択肢');
+  if(p.swap==='不可'){sc-=5}
+ }
+ // 台数
+ if(p.min&&u<p.min){bad.push(p.min+'台から販売。'+u+'台では割高（費用は'+p.min+'台分で表示）');sc-=22}
+ if(p.many&&u>=30){good.push('多数設置で1台あたりの年額が下がる');sc+=10}
+ if(p.swap==='不可')bad.push('電池交換不可。寿命（'+p.batt+'）で本体ごと更新');
+ const c=p.cost(n,u,k);const tot=[c.i[0]+5*c.a[0],c.i[1]+5*c.a[1]];
+ return{p,raw:sc,sc:Math.max(0,Math.min(100,sc)),good,bad,ng,u,c,tot,out:ng.length>0};
+}
+
+const INST={
+ channel:['計測部は水路の側壁に、保護管（塩ビ管など）に入れて固定する。流心は避け、流れの緩い側に置く','検知高さは「溢れる高さ」から逆算する。2点なら、溢水直前と、その手前（予告用）','通信装置は天端より上の支柱か柵に。計測部と同じ支柱にまとめると管理しやすい','水路管理者（市町村・土地改良区など）の許可を早めに取る'],
+ road:['計測部は路肩・縁石・ガードレール支柱など、車に踏まれない位置に','路面すれすれは水はね・泥はねを拾う。検知したい水深で高さを決める','路面設置は夏に70℃以上になることがあり、機器の耐熱を確認する','アンダーパスは通信が通りにくい。通信装置を地上側に出す'],
+ gate:['樋門の内水側と外水側に1地点ずつ置くと、水位の逆転が分かる','計測部は吐口の乱れを避け、ゲートから少し離した側壁に保護管付きで','検知高さはゲート操作の基準水位に合わせる','樋門管理者の許可と、操作員への通知先の設定を合わせて行う'],
+ wall:['建物の壁面・基礎に、ねじ止めかバンドで固定','検知高さは床下浸水・床上浸水の高さに合わせる','雨だれ・植栽の散水が当たる位置は避ける','敷地所有者の同意と、データの扱い（個人情報）を確認する'],
+ levee:['堤防天端付近・堤内側の法尻など、越水・浸水を知りたい高さに','草の繁茂が早い。砂利敷き・防草シートを併用する','草刈り機によるケーブル切断に注意し、ケーブルは保護する','河川管理者の占用許可が必要']
+};
+const COMMON_INST=['設置直後にバケツの水で検知と通知を確認し、登録した位置・高さも確かめる','向きで検知高さが変わる機種がある。施工を外注するなら位置と向きを具体的に指示する','点検は年1〜2回と出水の前後。清掃・動作試験・固定の緩み確認'];
+const USE={
+ channel:['排水路の水位と道路冠水の発生を突き合わせ、「この水位で浸水が始まる」という閾値を特定する','2点あれば、予告（下段）と発生（上段）の時間差から上昇速度が分かり、出動の余裕時間を見積もれる','浸水が解消した時刻から、排水能力の不足か下流の背水かを見分ける材料になる','仮設ポンプの設置・撤去の判断に使う'],
+ road:['通行止めの判断と、水防巡回の順番決めに使う','冠水の開始・解消時刻を記録し、頻発箇所の対策の優先順位づけに使う','住民向けの通知（自主避難・迂回）に流す'],
+ gate:['内外の水位関係からゲートの開閉判断を支える','閉鎖中に内水側が何分で上がるかを記録し、ポンプ能力の検討に使う','出水ごとの記録を残し、操作規則の見直し根拠にする'],
+ wall:['施設の止水板設置・避難開始の合図に使う','浸水深の実績を残し、対策高さの根拠にする','保険・被害申請の時刻証拠として残す'],
+ levee:['越水・溢水の早期把握と、水防団への通知に使う','浸水範囲の実績を蓄積し、避難経路の検討に使う']
+};
+const USE_COMMON=['出水ごとに、公開の雨量・河川水位とセンサーの発報時刻を並べて記録する（年次の台帳にする）','カメラ画像と組み合わせると、発報の確からしさを確認できる'];
+
+function render(){
+ const rs=P.map(evalP);
+ const key=document.getElementById('sort')?.value||'fit';
+ const ok=rs.filter(r=>!r.out),out=rs.filter(r=>r.out);
+ ok.sort((a,b)=>key==='cost'?a.tot[0]-b.tot[0]:(b.raw-a.raw)||(a.tot[1]-b.tot[1]));
+ let h='';
+ if(S.info==='cont')h+=`<div class="card" style="border-color:var(--warn)"><div class="hd"><b>連続した水位が必要なら、水位計の領域です</b></div><p style="margin:6px 0 0">浸水センサは決めた高さでのON/OFF検知が基本です。ハイドログラフが要るなら、圧力式・超音波式・電波式の水位計（危機管理型水位計など）を別途見積もるのが筋です。この試作には水位計の機種・価格は入っていません。下は、浸水センサの範囲で近いものです。</p></div>`;
+ h+=`<div class="sortrow"><span>${ok.length}機種が条件に合い、${out.length}機種が対象外</span><span>並び順</span><select id="sort"><option value="fit"${key==='fit'?' selected':''}>適合度</option><option value="cost"${key==='cost'?' selected':''}>5年総額が安い順</option></select></div>`;
+ const card=(r,i)=>{const p=r.p;const b=r.out?'<span class="badge b-ng">対象外</span>':r.sc>=80?`<span class="badge b-ok">適合度 ${r.sc}</span>`:`<span class="badge b-warn">適合度 ${r.sc}</span>`;
+  const dem=[...r.bad,...MD[p.method]];
+  return `<div class="card${!r.out&&i===0?' top':''}${r.out?' out':''}"><div class="hd"><b>${!r.out&&i===0?'第1候補　':''}${p.name}</b>${b}</div>
+  <div class="spec">${MJ[p.method]}／${p.comm}／判定：${p.judge}／電池 ${p.batt}・交換${p.swap}<br>${p.feat}</div>
+  <div class="money"><div><span>初期費用（${S.n}地点・${r.u}台）</span><strong>${rng(r.c.i)}</strong></div><div><span>年額ランニング</span><strong>${rng(r.c.a)}</strong></div><div><span>5年総額</span><strong>${rng(r.tot)}</strong></div></div>
+  ${r.ng.length?`<div class="lab n">対象外の理由</div><ul>${r.ng.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
+  ${r.good.length?`<div class="lab g">合う点</div><ul>${r.good.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
+  <div class="lab w">デメリット・注意</div><ul>${dem.map(x=>`<li>${x}</li>`).join('')}</ul>
+  ${p.tde?`<div class="lab" style="color:var(--acc)">TDE比較表（南陽市・2025年5月）</div><p style="margin:2px 0 0;font-size:13.5px">${p.tde}</p>`:''}<p class="note" style="margin:8px 0 0">費用の注記：${p.flag}</p></div>`};
+ h+=ok.map(card).join('');
+ const two=S.info==='p2'?['2点の高さは、下段＝「まだ動ける水位」、上段＝「被害が始まる水位」に置くと、通知がそのまま行動の合図になる']:[];
+ h+=`<div class="guide"><h2>設置方法（${Q[0].o.find(o=>o[0]===S.loc)[1]}）</h2><ul>${[...INST[S.loc],...two,...COMMON_INST].map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+ h+=`<div class="guide"><h2>活用方法</h2><ul>${[...USE[S.loc],...USE_COMMON].map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+ if(out.length)h+=`<h2 style="margin-top:18px">対象外になった機種</h2>`+out.map(card).join('');
+ document.getElementById('out').innerHTML=h;
+ document.getElementById('sort').onchange=render;
+}
+function form(){
+ document.getElementById('form').innerHTML='<h2>条件</h2>'+Q.map(q=>{
+  if(q.type==='num')return `<div class="q"><h3>${q.t}</h3><input type="number" id="n" min="1" max="500" value="${S.n}"> 地点</div>`;
+  return `<div class="q"><h3>${q.t}${q.sub?` <small>${q.sub}</small>`:''}</h3><div class="opts">${q.o.map(o=>`<label><input type="${q.type==='check'?'checkbox':'radio'}" name="${q.id}" value="${o[0]}"${(q.type==='check'?S.env.includes(o[0]):S[q.id]===o[0])?' checked':''}>${o[1]}</label>`).join('')}</div></div>`}).join('');
+ document.getElementById('form').addEventListener('input',e=>{const t=e.target;
+  if(t.id==='n')S.n=Math.max(1,Math.min(500,parseInt(t.value)||1));
+  else if(t.type==='checkbox')S.env=[...document.querySelectorAll('input[name=env]:checked')].map(x=>x.value);
+  else S[t.name]=t.value;render()});
+}
+function table(){
+ const rows=P.map(p=>{const c=p.cost(1,1,1);return `<tr><td><b>${p.name}</b></td><td>${MJ[p.method]}</td><td>${p.comm}</td><td>${{need:'必要',no:'不要',gw:'通信装置のみ必要'}[p.power]}</td><td>${p.batt}<br>交換${p.swap}</td><td>${p.stages>=20?'20段階':p.stages>1?p.stages+'点まで':p.addSensor?'センサ追加で可':'1点'}</td><td>${{yes:'あり',unknown:'要確認'}[p.mail]}</td><td class="r">${rng(c.i)}</td><td class="r">${rng(c.a)}</td><td>${MD[p.method].join('／')}</td><td>${p.flag}</td></tr>`}).join('');
+ document.getElementById('tbl').innerHTML=`<table><thead><tr><th>機種</th><th>検知方式</th><th>通信</th><th>商用電源</th><th>電池</th><th>多点検知</th><th>メール通知</th><th>初期（1台）</th><th>年額（1台）</th><th>方式のデメリット</th><th>費用の注記</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+['t1','t2','t3'].forEach((id,i)=>document.getElementById(id).onclick=()=>{['v1','v2','v3'].forEach((v,j)=>document.getElementById(v).classList.toggle('hide',i!==j));['t1','t2','t3'].forEach((b,j)=>document.getElementById(b).classList.toggle('on',i===j))});
+form();table();render();
+</script>
+</body>
+</html>
